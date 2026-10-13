@@ -71,6 +71,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
         all.isEnabled = !stores.isEmpty
         menu.addItem(all)
+        menu.addItem(passwordMenu())
         menu.addItem(.separator())
 
         menu.addItem(action("連線統計…", #selector(showStats)))
@@ -115,6 +116,47 @@ final class MenuController: NSObject, NSMenuDelegate {
         return i
     }
 
+    /// For when the store's password is posted on the wall: try exactly that one.
+    /// Lists the nearest store's candidates, then every store by city.
+    private func passwordMenu() -> NSMenuItem {
+        let item = NSMenuItem(title: "用密碼連線", action: nil, keyEquivalent: "")
+        let menu = NSMenu()
+        if let here = Locator.shared.location, let store = Stores.nearest(to: here, limit: 1).first?.store {
+            menu.addItem(disabled(store.name))
+            passwordItems(store).forEach { $0.indentationLevel = 1; menu.addItem($0) }
+            menu.addItem(.separator())
+        }
+        let others = NSMenuItem(title: menu.items.isEmpty ? "選擇門市" : "其他門市", action: nil, keyEquivalent: "")
+        others.submenu = NSMenu()
+        for (city, cityStores) in Stores.byCity() {
+            let cityItem = NSMenuItem(title: "\(city)（\(cityStores.count)）", action: nil, keyEquivalent: "")
+            cityItem.submenu = NSMenu()
+            for store in cityStores {
+                let storeItem = NSMenuItem(title: store.name, action: nil, keyEquivalent: "")
+                storeItem.submenu = NSMenu()
+                passwordItems(store).forEach { storeItem.submenu!.addItem($0) }
+                cityItem.submenu!.addItem(storeItem)
+            }
+            others.submenu!.addItem(cityItem)
+        }
+        menu.addItem(others)
+        item.submenu = menu
+        return item
+    }
+
+    /// The store's candidate passwords, then 輸入密碼… for anything else.
+    private func passwordItems(_ store: Store) -> [NSMenuItem] {
+        var items = store.passwords.map { pw -> NSMenuItem in
+            let i = action(pw, #selector(connectWithPassword(_:)))
+            i.representedObject = [store.name, pw]
+            return i
+        }
+        let other = action("輸入密碼…", #selector(enterPassword(_:)))
+        other.representedObject = store.name
+        items.append(other)
+        return items
+    }
+
     private func distance(_ meters: Double) -> String {
         meters < 1000 ? "\(Int(meters / 10) * 10) m" : String(format: "%.1f km", meters / 1000)
     }
@@ -124,6 +166,29 @@ final class MenuController: NSObject, NSMenuDelegate {
     @objc private func connect(_ sender: NSMenuItem) {
         guard let name = sender.representedObject as? String, let store = Stores.named(name) else { return }
         Joiner.shared.connect(to: store)
+    }
+
+    @objc private func connectWithPassword(_ sender: NSMenuItem) {
+        guard let pair = sender.representedObject as? [String], let store = Stores.named(pair[0]) else { return }
+        Joiner.shared.connect(to: store, password: pair[1])
+    }
+
+    @objc private func enterPassword(_ sender: NSMenuItem) {
+        guard let name = sender.representedObject as? String, let store = Stores.named(name) else { return }
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+        field.placeholderString = store.passwords.first
+        let alert = NSAlert()
+        alert.messageText = "輸入\(store.name)的 Wi-Fi 密碼"
+        alert.informativeText = "照店內張貼的密碼輸入。連上之後會記住，下次自動使用。"
+        alert.accessoryView = field
+        alert.addButton(withTitle: "連線")
+        alert.addButton(withTitle: "取消")
+        alert.window.initialFirstResponder = field
+        if #available(macOS 14, *) { NSApp.activate() } else { NSApp.activate(ignoringOtherApps: true) }
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        let password = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !password.isEmpty else { return }
+        Joiner.shared.connect(to: store, password: password)
     }
 
     @objc func showStats() {
