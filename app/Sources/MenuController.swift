@@ -44,6 +44,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
         menu.addItem(disabled(status.text))
+        menu.addItem(passwordMenu())
         menu.addItem(.separator())
 
         let onlyKnown = UserDefaults.standard.bool(forKey: "onlyKnown")
@@ -71,7 +72,6 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
         all.isEnabled = !stores.isEmpty
         menu.addItem(all)
-        menu.addItem(passwordMenu())
         menu.addItem(.separator())
 
         menu.addItem(action("連線統計…", #selector(showStats)))
