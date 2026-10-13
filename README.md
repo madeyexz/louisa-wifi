@@ -10,7 +10,7 @@
   <a href="#常見問題">常見問題</a>
 </p>
 
-<p align="center"><img src="docs/screenshot-menu.png" width="280" alt="選單列的 ☕ 選單"></p>
+<p align="center"><img src="docs/screenshot-menu.png" width="480" alt="選單列的 ☕ 選單"></p>
 <p align="center"><img src="docs/screenshot-stats.png" width="820" alt="連線統計視窗"></p>
 
 ## 為什麼需要它？
