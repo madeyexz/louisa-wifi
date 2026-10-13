@@ -119,7 +119,7 @@ Mac 沒有 GPS，沒有網路時位置可能不準，所以第一次去某家店
 <details>
 <summary>密碼是怎麼來的？</summary>
 
-路易莎的 Wi-Fi 密碼是門市的電話號碼（通常去掉開頭的 0；台北 02 開頭的門市去掉整個 02）。門市和電話資料來自[路易莎官網的門市查詢](https://www.louisacoffee.co/visit)。
+路易莎的 Wi-Fi 密碼是門市的電話號碼（通常去掉開頭的 0；台北 02 開頭的門市去掉整個 02；少數門市使用完整號碼）。門市和電話資料來自[路易莎官網的門市查詢](https://www.louisacoffee.co/visit)。
 </details>
 
 <details>
@@ -170,7 +170,7 @@ Mac 沒有 GPS，沒有網路時位置可能不準，所以第一次去某家店
 | 04-2326-2617 | `423262617` |
 | 03-338-0980 | `33380980` |
 
-少數門市使用不同的規則，因此 app 為每家門市準備了最多兩組可能的密碼，並依序嘗試。與 [Watermelon-1234/LouisaInternetSwitch](https://github.com/Watermelon-1234/LouisaInternetSwitch) 整理的資料比對後，雙方都有收錄的 459 家門市中，有 452 家的密碼符合上述規則。
+少數門市使用不同的規則，例如保留開頭 0 的完整號碼（03-577-0157 → `035770157`），因此 app 為每家門市準備了 2 到 3 組可能的密碼，並依序嘗試；成功連上後會記住這台路由器的密碼，下次直接使用。與 [Watermelon-1234/LouisaInternetSwitch](https://github.com/Watermelon-1234/LouisaInternetSwitch) 整理的資料比對後，雙方都有收錄的 459 家門市中，有 452 家的密碼符合上述規則。
 
 ### 門市資料
 
