@@ -44,7 +44,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
         menu.addItem(disabled(status.text))
-        menu.addItem(passwordMenu())
+        if let passwords = passwordMenu() { menu.addItem(passwords) }
         menu.addItem(.separator())
 
         let onlyKnown = UserDefaults.standard.bool(forKey: "onlyKnown")
@@ -67,7 +67,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         for (city, cityStores) in Stores.byCity(stores) {
             let cityItem = NSMenuItem(title: "\(city)（\(cityStores.count)）", action: nil, keyEquivalent: "")
             cityItem.submenu = NSMenu()
-            cityStores.forEach { cityItem.submenu!.addItem(storeItem($0, detail: nil)) }
+            cityStores.forEach { cityItem.submenu!.addItem(allStoreItem($0)) }
             all.submenu!.addItem(cityItem)
         }
         all.isEnabled = !stores.isEmpty
@@ -117,30 +117,26 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     /// For when the store's password is posted on the wall: try exactly that one.
-    /// Lists the nearest store's candidates, then every store by city.
-    private func passwordMenu() -> NSMenuItem {
+    /// Other stores' passwords are under 所有門市.
+    private func passwordMenu() -> NSMenuItem? {
+        guard let here = Locator.shared.location, let store = Stores.nearest(to: here, limit: 1).first?.store else { return nil }
         let item = NSMenuItem(title: "用密碼連線", action: nil, keyEquivalent: "")
-        let menu = NSMenu()
-        if let here = Locator.shared.location, let store = Stores.nearest(to: here, limit: 1).first?.store {
-            menu.addItem(disabled(store.name))
-            passwordItems(store).forEach { $0.indentationLevel = 1; menu.addItem($0) }
-            menu.addItem(.separator())
-        }
-        let others = NSMenuItem(title: menu.items.isEmpty ? "選擇門市" : "其他門市", action: nil, keyEquivalent: "")
-        others.submenu = NSMenu()
-        for (city, cityStores) in Stores.byCity() {
-            let cityItem = NSMenuItem(title: "\(city)（\(cityStores.count)）", action: nil, keyEquivalent: "")
-            cityItem.submenu = NSMenu()
-            for store in cityStores {
-                let storeItem = NSMenuItem(title: store.name, action: nil, keyEquivalent: "")
-                storeItem.submenu = NSMenu()
-                passwordItems(store).forEach { storeItem.submenu!.addItem($0) }
-                cityItem.submenu!.addItem(storeItem)
-            }
-            others.submenu!.addItem(cityItem)
-        }
-        menu.addItem(others)
-        item.submenu = menu
+        item.submenu = NSMenu()
+        item.submenu!.addItem(disabled(store.name))
+        passwordItems(store).forEach { $0.indentationLevel = 1; item.submenu!.addItem($0) }
+        return item
+    }
+
+    /// A store under 所有門市: try every candidate, or pick one.
+    private func allStoreItem(_ store: Store) -> NSMenuItem {
+        let item = NSMenuItem(title: store.name, action: nil, keyEquivalent: "")
+        item.toolTip = "\(store.address)\n\(store.phone)"
+        item.submenu = NSMenu()
+        let auto = storeItem(store, detail: nil)
+        auto.title = "自動嘗試"
+        item.submenu!.addItem(auto)
+        item.submenu!.addItem(.separator())
+        passwordItems(store).forEach { item.submenu!.addItem($0) }
         return item
     }
 
