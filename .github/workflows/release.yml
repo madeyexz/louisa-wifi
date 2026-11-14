@@ -21,6 +21,39 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag || github.ref }}
+      - name: Set up Developer ID signing and notarization
+        env:
+          P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -z "$P12_BASE64$P12_PASSWORD$ASC_KEY_ID$ASC_ISSUER_ID$ASC_KEY_P8" ]; then
+            echo "::warning::No signing secrets: this release is not signed or notarized."
+            exit 0
+          fi
+          for name in P12_BASE64 P12_PASSWORD ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            [ -n "${!name}" ] || { echo "::error::Signing secret for $name is missing."; exit 1; }
+          done
+
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/developer-id.p12"
+          security import "$RUNNER_TEMP/developer-id.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+
+          {
+            echo "SIGN_IDENTITY=Developer ID Application"
+            echo "NOTARY_KEY_PATH=$RUNNER_TEMP/notary.p8"
+            echo "NOTARY_KEY_ID=$ASC_KEY_ID"
+            echo "NOTARY_ISSUER_ID=$ASC_ISSUER_ID"
+          } >> "$GITHUB_ENV"
       - run: VERSION="${TAG#v}" ./build.sh
       - run: gh release create "$TAG" build/LouisaWiFi.zip raycast/louisa-wifi.js --generate-notes
         env:

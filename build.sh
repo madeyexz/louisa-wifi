@@ -34,7 +34,24 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
 rm -rf "$ICONSET"
-codesign --force --sign - "$APP"
+
+# Release builds set SIGN_IDENTITY ("Developer ID Application: …") and an App Store
+# Connect API key (NOTARY_KEY_PATH, NOTARY_KEY_ID, NOTARY_ISSUER_ID) so Gatekeeper
+# opens the app without warnings. Local builds get an ad-hoc signature.
+if [ -n "${SIGN_IDENTITY:-}" ]; then
+  codesign --force --options runtime --timestamp --entitlements app/LouisaWiFi.entitlements --sign "$SIGN_IDENTITY" "$APP"
+else
+  codesign --force --sign - "$APP"
+fi
 
 ditto -c -k --keepParent "$APP" build/LouisaWiFi.zip
+
+if [ -n "${NOTARY_KEY_PATH:-}" ]; then
+  xcrun notarytool submit build/LouisaWiFi.zip --wait \
+    --key "$NOTARY_KEY_PATH" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID"
+  # Fails unless Apple accepted the submission; `xcrun notarytool log <id>` says why.
+  xcrun stapler staple "$APP"
+  rm build/LouisaWiFi.zip
+  ditto -c -k --keepParent "$APP" build/LouisaWiFi.zip
+fi
 echo "Built $APP"

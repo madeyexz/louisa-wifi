@@ -17,7 +17,7 @@ ditto -x -k "$tmp/LouisaWiFi.zip" "$tmp"
 pkill -x LouisaWiFi 2>/dev/null || true
 rm -rf "$DEST/LouisaWiFi.app"
 mv "$tmp/LouisaWiFi.app" "$DEST/"
-# Not notarized: drop the quarantine flag so Gatekeeper doesn't block it.
+# Releases built without signing secrets aren't notarized: drop the quarantine flag so Gatekeeper doesn't block them.
 xattr -dr com.apple.quarantine "$DEST/LouisaWiFi.app" 2>/dev/null || true
 
 open "$DEST/LouisaWiFi.app"

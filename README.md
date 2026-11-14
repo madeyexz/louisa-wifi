@@ -45,13 +45,9 @@ Louisa Wi-Fi 會認出你在哪一家店，自動換上那家店的密碼。全�
 
 **3. 第一次打開**
 
-到「應用程式」點兩下 **LouisaWiFi**。macOS 會跳出「無法打開」或「無法驗證開發者」的警告，這是因為 app 沒有付費向 Apple 註冊，不是病毒：
+到「應用程式」點兩下 **LouisaWiFi**。macOS 會問你是否確定要打開從網際網路下載的 app，按「**打開**」。
 
-1. 先按「完成」關掉警告。
-2. 打開「系統設定 → 隱私權與安全性」，捲到最下面。
-3. 會看到「已阻擋 LouisaWiFi」，按旁邊的「**仍要打開**」（有些版本叫「強制打開」），輸入 Mac 的密碼。
-
-只有第一次需要這樣做。
+app 已經用 Apple 開發者憑證簽章，並經過 Apple 公證，所以只有第一次會問。
 
 **4. 允許定位**
 
@@ -62,7 +58,7 @@ Louisa Wi-Fi 會認出你在哪一家店，自動換上那家店的密碼。全�
 完成！建議從 ☕ 選單勾選「**登入時開啟**」，這樣每次開機都會自動執行。
 
 <details>
-<summary>熟悉終端機？一行指令安裝（可以跳過第 3 步的安全性警告）</summary>
+<summary>熟悉終端機？一行指令安裝</summary>
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/madeyexz/louisa-wifi/main/install.sh | bash
@@ -136,7 +132,7 @@ Mac 沒有 GPS，沒有網路時位置可能不準，所以第一次去某家店
 <details>
 <summary>更新後又跳出定位詢問？</summary>
 
-這是正常的。app 沒有付費向 Apple 註冊開發者簽章，所以每次更新後，macOS 會把它當成新的 app，再問一次定位權限。按「允許」就好，你的連線紀錄和統計都會保留。
+從還沒有開發者簽章的舊版更新時，macOS 會把新版當成另一個 app，再問一次定位權限。按「允許」就好，你的連線紀錄和統計都會保留。之後的更新不會再問。
 </details>
 
 <details>
@@ -205,7 +201,18 @@ Mac 沒有 GPS，沒有網路時位置可能不準，所以第一次去某家店
 open build/LouisaWiFi.app
 ```
 
-將 `v*` 標籤推送到 GitHub 後，GitHub Actions 就會編譯並發布 Release。
+自己編譯的版本只有臨時簽章（ad-hoc）。
+
+將 `v*` 標籤推送到 GitHub 後，GitHub Actions 就會編譯、簽章、公證並發布 Release。簽章和公證需要以下 repository secrets：
+
+| Secret | 內容 |
+|---|---|
+| `DEVELOPER_ID_P12_BASE64` | 「Developer ID Application」憑證和私鑰匯出的 `.p12`，用 `base64 -i cert.p12` 轉成文字 |
+| `DEVELOPER_ID_P12_PASSWORD` | 匯出 `.p12` 時設定的密碼 |
+| `ASC_KEY_ID`、`ASC_ISSUER_ID` | App Store Connect API key 的 Key ID 和 Issuer ID（「使用者與存取權限 → 整合」） |
+| `ASC_KEY_P8` | 這個 API key 的 `.p8` 檔案內容 |
+
+沒有設定這些 secrets 時，Release 仍會發布，但沒有簽章和公證。
 
 ### 隱私
 
